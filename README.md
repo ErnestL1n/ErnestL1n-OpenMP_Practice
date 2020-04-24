@@ -1,5 +1,5 @@
 # OpenMP_Practice
-OpenMP Programming_Practice In C
+OpenMP Programming Practice In C
 
 OpenMP common commands on putty ubuntu environment:
 
