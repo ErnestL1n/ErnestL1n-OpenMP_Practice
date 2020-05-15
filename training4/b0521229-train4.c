@@ -15,40 +15,63 @@
 
 #define N 100000000
 
+
 int main(int argc,char *argv[]){
 	
 	int *array=(int*)malloc(sizeof(int)*N);
 	
+	int numberofthreads;
+	
+	int i;
+	
 	
 	//range 1-10
-	for(int i=0;i<N;i++)
+	for(i=0;i<N;i++)
 		array[i]=(rand()%10)+1;
 	
 
 	double start=0.0,end;
 	
-	
 	long sum=0;
 	
 	
+	//for load balancing
+	long chunk=1000000;
+	
 	         /****************just modify number of threads you want to use here***************************/
-	#pragma omp parallel num_threads(1)
+			 omp_set_num_threads(32);
+			 
+			 
+			 
+    /*parallel directive=>create threads*/
+	#pragma omp parallel 
 	{
+		numberofthreads=omp_get_num_threads();
+		
+	#pragma omp	master
+	printf("\n\n--------------------There are %d threads created--------------------\n\n",numberofthreads);
 		
 		start=omp_get_wtime();
 		
-	#pragma omp for
-		for(int i=0;i<N;i++){
-			#pragma omp atomic  //Guarantee sum operation is atomic ,not being revised 
+	/*------GUIDED: Similar to DYNAMIC except chunk size decreases over time (better load balancing)------*/	
+	#pragma omp for private(i) \
+	                    schedule(guided,chunk) nowait reduction(+:sum)
+						/*using reduction to guarantee atomicity and increase performance*/
+		for(i=0;i<N;i++)
 			sum+=array[i];
-		}
 		
+		
+		/*
+		for(i=0;i<N;i++)
+			sum+=(i+1);
+		//use to check sum is correct
+		*/
 		
 		end=omp_get_wtime();
 		
 		
 	
-	printf("  Thread %3d  took %8.6f unit times\n",omp_get_thread_num(),end-start);
+	printf("                Thread %3d  took %8.6f unit times\n",omp_get_thread_num(),end-start);
 	
 	
 	}
