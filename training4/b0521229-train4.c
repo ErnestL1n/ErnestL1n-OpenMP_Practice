@@ -1,4 +1,4 @@
-//author:  B0521229  Ernest Lin 
+//author:Ernest Lin 
 //for homework4 A MOTIVATING EXAMPLE 
 //OpenMP program
 //Please declare an array with 100,000,000 elements
