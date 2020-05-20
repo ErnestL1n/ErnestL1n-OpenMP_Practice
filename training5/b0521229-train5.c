@@ -38,20 +38,26 @@ int main(int argc,char *argv[]){
     double start=0.0,end;
 	
 	
-	//for load balancing
-	//chunk not to set to large
-	long chunk=10;
+	//for well load balancing,we schedule as "runtime type"
+	//since we find primes,it is good to decide at runtime
+	
+	
+	
+	
 	
 	         /****************just modify number of threads you want to use here***************************/
-			 omp_set_num_threads(48);
+			 omp_set_num_threads(1);
 			 
 			 
+	
+	
 	
 	
 	//malloc a large array "ifprime[0..N]"
     //initialize all entries it as true(=1).
     //A value in prime[i] will finally be false if i is Not a prime, else true.
 	char *ifprime=(char*)malloc(sizeof(char)*(N+1));
+	
 	
 	//begin from 2
     memset(ifprime,'y',sizeof(ifprime[0])*(N+1));
@@ -62,7 +68,7 @@ int main(int argc,char *argv[]){
 		numberofthreads=omp_get_num_threads();
 		
 	#pragma omp	master
-	printf("\n\n--------------------There are %d threads created--------------------\n\n",numberofthreads);
+	printf("\n\n--------------------There are %d threads created-----------------------\n",numberofthreads);
 		
 		
 		
@@ -70,7 +76,7 @@ int main(int argc,char *argv[]){
 		start=omp_get_wtime();
 		
 	/*------GUIDED: Similar to DYNAMIC except chunk size decreases over time (better load balancing)------*/	
-	#pragma omp for private(i,j) schedule(guided,chunk)
+	#pragma omp for private(i,j) schedule(runtime)
 	                    //atomic barrier
 						/*using reduction to guarantee atomicity and increase performance*/				
 	for(i=2;i<=sqrtOfN;i++)
