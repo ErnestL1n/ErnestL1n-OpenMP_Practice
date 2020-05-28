@@ -3,7 +3,7 @@
 //Please write a OpenMP program to sort a list with 100,000,000 numbers, each between 0 and 99999 using bucket sort technique.
 //randomly generate numbers between 0~99999
 
-
+/*still has bug*/
 
 /*-----------------------------------And compare complexity to Train3 Mpi case-------------------------------------*/
 
