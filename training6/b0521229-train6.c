@@ -18,6 +18,14 @@
 #define randLarge 100000
 
 
+
+
+/********************************just modify number of threads you want to use here*******************************************/
+#define threads 16
+
+
+
+
 //the needed header file must be included
 #include<stdio.h>
 #include<stdlib.h>   //for random function
@@ -41,32 +49,20 @@ int main(int argc,char *argv[]){
 	
 	
 	
-	        /****************just modify number of threads you want to use here***************************/
-			 omp_set_num_threads(16);			 
+	        
+	omp_set_num_threads(threads);			 
 	
 	double start=0.0,end; 
-	int *origin_array=(int*)malloc(sizeof(int)*N);
-	int *final_array=(int*)malloc(sizeof(int)*N);
-	int numberofthreads;
-	int number_of_buckets;
+	int *origin_array=(int*)calloc(N,sizeof(int));
+	int *final_array=(int*)calloc(N,sizeof(int));
+	int numberofthreads=threads;
+	int number_of_buckets=numberofthreads;   //set to equal to number of threads
 	int size_of_local_bucket;
 	int workload;
 	int final_index;
 	int i;
 	
 		
-			 
-	 /*parallel directive=>create threads*/
-	#pragma omp parallel
-	{
-		
-		
-	numberofthreads=omp_get_num_threads();
-		
-	#pragma omp	master
-	printf("\n\n--------------------There are %d threads created--------------------\n\n",numberofthreads);
-		
-	number_of_buckets=numberofthreads;   //set to equal to number of threads
 		
 	//array contains all local bucket For example:4 threads there are 4*4 local buckets
 	//reset members to 0
@@ -85,6 +81,13 @@ int main(int argc,char *argv[]){
 	workload=N/numberofthreads;
 	
 	
+	/*parallel directive=>create threads*/
+	#pragma omp parallel
+	{
+	
+	
+	#pragma omp	master
+	printf("\n\n--------------------There are %d threads created--------------------\n\n",numberofthreads);
 	
 	#pragma omp barrier
 	
@@ -179,6 +182,7 @@ int main(int argc,char *argv[]){
 	
 	printf("                Thread %3d  took %8.6f unit times\n",omp_get_thread_num(),end-start);
 	
+	#pragma omp barrier
 	
 	#pragma omp	master
 	{
