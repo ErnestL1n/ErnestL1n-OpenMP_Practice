@@ -47,7 +47,7 @@ int main(int argc,char *argv[]){
 	double start=0.0,end; 
 	int *origin_array=(int*)malloc(sizeof(int)*N);
 	int *final_array=(int*)malloc(sizeof(int)*N);
-	itn numberofthreads;
+	int numberofthreads;
 	int number_of_buckets;
 	int size_of_local_bucket;
 	int workload;
@@ -57,13 +57,13 @@ int main(int argc,char *argv[]){
 		
 			 
 	 /*parallel directive=>create threads*/
-	#pragma omp parallel{
+	#pragma omp parallel
+	{
 		
 		
 	numberofthreads=omp_get_num_threads();
 		
-	#pragma omp	master{
-		
+	#pragma omp	master
 	printf("\n\n--------------------There are %d threads created--------------------\n\n",numberofthreads);
 		
 	number_of_buckets=numberofthreads;   //set to equal to number of threads
@@ -85,7 +85,6 @@ int main(int argc,char *argv[]){
 	workload=N/numberofthreads;
 	
 	
-	}
 	
 	#pragma omp barrier
 	
@@ -130,13 +129,15 @@ int main(int argc,char *argv[]){
 	//first loop is done by the master thread 0
     //which initializes the starting position for both local and global buckets in final array
 	
-    #pragma omp master{   //handle buckets[0~2]
+    #pragma omp master
+	{   //handle buckets[0~2]
 		for(i=1;i<number_of_buckets;i++){
 			global_boucket_start[i]=global_boucket_start[i-1]+global_boucket_count[i-1];
 			buckets[i].startpos=buckets[i-1].startpos+ global_boucket_count[i-1];
 			buckets[i].index   =buckets[i-1].index   + global_boucket_count[i-1];
 	}
- 	
+ 	}
+	
 	#pragma omp barrier   //wait for master thread
 	
 	
@@ -160,7 +161,7 @@ int main(int argc,char *argv[]){
 	
 	#pragma omp for private(i, final_index) schedule(static,workload) 
     for (i=0; i< N ;i++){
-        int temp = A[i]/w;
+        int temp = origin_array[i]/size_of_local_bucket;
         int n = temp + my_id*number_of_buckets;
         final_index = buckets[n].index++;
         final_array[final_index] = origin_array[i];
@@ -169,12 +170,43 @@ int main(int argc,char *argv[]){
 	
 	#pragma omp for private(i) schedule(static,workload) 
     for(i=0; i<number_of_buckets; i++)
-        qsort(B+global_boucket_start[i], global_boucket_count[i], sizeof(int), compare);
+        qsort(final_array+global_boucket_start[i], global_boucket_count[i], sizeof(int), compare);
+	
+	
+	
+	end=omp_get_wtime();
+	
+	
+	printf("                Thread %3d  took %8.6f unit times\n",omp_get_thread_num(),end-start);
+	
+	
+	#pragma omp	master
+	{
+		char sorted = 'Y';
+		for(i = 0; i < N - 2; i++){
+			if(final_array[i] > final_array[i+1]){
+				sorted = 'N';
+				break;
+			}
+
+		if(sorted == 'Y'){
+			printf("\nSORTING is CORRECT\n");
+		}else{
+			printf("\nSORTING is NOT CORRECT\n");
+		}
+		printf("\n-----------------------------------------------------------------\n");
+	}
+	
+	free(buckets);
+	
+	}
+	
+	free(origin_array);
+	free(final_array);
+	
 }
 	
 }
-
-
 int compare(const void *num1, const void *num2){
 	int a1=*(int*)num1;
 	int a2=*(int*)num2;
