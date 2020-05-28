@@ -126,6 +126,51 @@ int main(int argc,char *argv[]){
 	
 	#pragma omp barrier
 
+	//take example for 4 threads
+	//first loop is done by the master thread 0
+    //which initializes the starting position for both local and global buckets in final array
+	
+    #pragma omp master{   //handle buckets[0~2]
+		for(i=1;i<number_of_buckets;i++){
+			global_boucket_start[i]=global_boucket_start[i-1]+global_boucket_count[i-1];
+			buckets[i].startpos=buckets[i-1].startpos+ global_boucket_count[i-1];
+			buckets[i].index   =buckets[i-1].index   + global_boucket_count[i-1];
+	}
+ 	
+	#pragma omp barrier   //wait for master thread
+	
+	
+	//second loop is done in parallel,since thread i can set up the right starting position in final array for each local bucket
+	//thread 0  buckets:4 8 12
+	//thread 1  buckets:5 9 13
+   	//thread 2  buckets:6 10 14
+    //thread 3  buckets:7 11 15
+	
+	for (i=my_id+number_of_buckets; i< number_of_buckets*numberofthreads; i+=numberofthreads){
+		int prevoius_index = i-number_of_buckets;
+		buckets[i].startpos = buckets[prevoius_index].startpos + buckets[prevoius_index].number_of_elements;
+		buckets[i].index    = buckets[prevoius_index].index    + buckets[prevoius_index].number_of_elements;	
+	}
+	
+	#pragma omp barrier   
+	
+	
+	//now we can write data into final array, since we have all positions
+	
+	
+	#pragma omp for private(i, final_index) schedule(static,workload) 
+    for (i=0; i< N ;i++){
+        int temp = A[i]/w;
+        int n = temp + my_id*number_of_buckets;
+        final_index = buckets[n].index++;
+        final_array[final_index] = origin_array[i];
+    }
+	
+	
+	#pragma omp for private(i) schedule(static,workload) 
+    for(i=0; i<number_of_buckets; i++)
+        qsort(B+global_boucket_start[i], global_boucket_count[i], sizeof(int), compare);
+}
 	
 }
 
