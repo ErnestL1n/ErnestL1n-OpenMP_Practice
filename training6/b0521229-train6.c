@@ -14,8 +14,8 @@
 #include<math.h>    //for sqrt
 #include<string.h>  //for memset
 
-#define N 100000000
-#define randLarge 100000
+#define N 100000000        
+#define randLarge 100000 
 
 
 
@@ -58,7 +58,6 @@ int main(int argc,char *argv[]){
 	int numberofthreads=threads;
 	int number_of_buckets=numberofthreads;   //set to equal to number of threads
 	int size_of_local_bucket;
-	int workload;
 	int final_index;
 	int i;
 	
@@ -78,13 +77,18 @@ int main(int argc,char *argv[]){
 		
 	size_of_local_bucket=randLarge/number_of_buckets;
 	
-	workload=N/numberofthreads;
 	
+	//generate numbers
+	for(i=0;i<N;i++)
+			origin_array[i]=rand()%randLarge;
 	
 	/*parallel directive=>create threads*/
+	
 	#pragma omp parallel
 	{
-	
+		
+	//local variable !!  my bug appears here....................Don't be lazy to declare another variable
+	int j;
 	
 	#pragma omp	master
 	printf("\n\n--------------------There are %d threads created--------------------\n\n",numberofthreads);
@@ -93,35 +97,29 @@ int main(int argc,char *argv[]){
 	
 	start=omp_get_wtime();
 	
-	//generate numbers
-	#pragma omp for private(i) schedule(static,workload)
-		for(i=0;i<N;i++)
-			origin_array[i]=rand()%randLarge;
-		
-	#pragma omp barrier
-	
-	
 	int my_id = omp_get_thread_num();
 	int previous_index;
 	int local_index;           //local_index is the same among all threads
 	int buckets_array_index;   //for buckets array
 	
 	
+	
 	//distributed date into local buckets among threads
-	#pragma omp for private(i,local_index)
+	#pragma omp for private(i,local_index) 
 	    for(i=0;i<N;i++){
 			local_index=origin_array[i]/size_of_local_bucket;
-		
+		if (local_index > number_of_buckets-1)
+                local_index = number_of_buckets-1;
 		buckets_array_index=local_index+my_id*number_of_buckets;
 		buckets[buckets_array_index].number_of_elements++;
 		}
-	
+
+
 	//use to count number of elements in global bucket
 	int sum_of_local_elements=0;
 	
-	#pragma omp for private(i)
-		for(i=my_id;i<numberofthreads*number_of_buckets;i+=number_of_buckets)
-			sum_of_local_elements+=buckets[i].number_of_elements;
+		for(j=my_id;j<numberofthreads*number_of_buckets;j+=numberofthreads)
+			sum_of_local_elements+=buckets[j].number_of_elements;
 			
 	global_boucket_count[my_id]=sum_of_local_elements;
 	
@@ -134,44 +132,45 @@ int main(int argc,char *argv[]){
 	
     #pragma omp master
 	{   //handle buckets[0~2]
-		for(i=1;i<number_of_buckets;i++){
-			global_boucket_start[i]=global_boucket_start[i-1]+global_boucket_count[i-1];
-			buckets[i].startpos=buckets[i-1].startpos+ global_boucket_count[i-1];
-			buckets[i].index   =buckets[i-1].index   + global_boucket_count[i-1];
+		for(j=1;j<number_of_buckets;j++){
+			global_boucket_start[j]=global_boucket_start[j-1]+global_boucket_count[j-1];
+			buckets[j].startpos=buckets[j-1].startpos+ global_boucket_count[j-1];
+			buckets[j].index   =buckets[j-1].index   + global_boucket_count[j-1];
 	}
  	}
 	
 	#pragma omp barrier   //wait for master thread
 	
 	
-	//second loop is done in parallel,since thread i can set up the right starting position in final array for each local bucket
-	//thread 0  buckets:4 8 12
-	//thread 1  buckets:5 9 13
+	//second loop is done in parallel,since thread j can set up the right starting position in final array for each local bucket
+	//thread 0  buckets:4  8 12
+	//thread 1  buckets:5  9 13
    	//thread 2  buckets:6 10 14
     //thread 3  buckets:7 11 15
 	
-	for (i=my_id+number_of_buckets; i< number_of_buckets*numberofthreads; i+=numberofthreads){
-		int prevoius_index = i-number_of_buckets;
-		buckets[i].startpos = buckets[prevoius_index].startpos + buckets[prevoius_index].number_of_elements;
-		buckets[i].index    = buckets[prevoius_index].index    + buckets[prevoius_index].number_of_elements;	
+	for (j=my_id+number_of_buckets; j< number_of_buckets*numberofthreads; j+=numberofthreads){
+		int prevoius_index  = j-number_of_buckets;
+		buckets[j].startpos = buckets[prevoius_index].startpos + buckets[prevoius_index].number_of_elements;
+		buckets[j].index    = buckets[prevoius_index].index    + buckets[prevoius_index].number_of_elements;	
 	}
 	
 	#pragma omp barrier   
 	
 	
 	//now we can write data into final array, since we have all positions
-	
-	
-	#pragma omp for private(i, final_index) schedule(static,workload) 
+	#pragma omp for private(i, final_index) 
     for (i=0; i< N ;i++){
         int temp = origin_array[i]/size_of_local_bucket;
-        int n = temp + my_id*number_of_buckets;
+		if (temp > number_of_buckets-1)
+                temp = number_of_buckets-1;
+		
+        int n = temp+ my_id*number_of_buckets;
         final_index = buckets[n].index++;
         final_array[final_index] = origin_array[i];
     }
 	
 	
-	#pragma omp for private(i) schedule(static,workload) 
+	#pragma omp for private(i) 
     for(i=0; i<number_of_buckets; i++)
         qsort(final_array+global_boucket_start[i], global_boucket_count[i], sizeof(int), compare);
 	
@@ -182,33 +181,31 @@ int main(int argc,char *argv[]){
 	
 	printf("                Thread %3d  took %8.6f unit times\n",omp_get_thread_num(),end-start);
 	
-	#pragma omp barrier
 	
-	#pragma omp	master
-	{
+	
+	
+	
+	
+}
+
 		char sorted = 'Y';
+		
 		for(i = 0; i < N - 2; i++){
-			if(final_array[i] > final_array[i+1]){
+		if(final_array[i] > final_array[i+1]){
 				sorted = 'N';
 				break;
-			}
-
+			}			
+		}
 		if(sorted == 'Y'){
 			printf("\nSORTING is CORRECT\n");
 		}else{
 			printf("\nSORTING is NOT CORRECT\n");
 		}
 		printf("\n-----------------------------------------------------------------\n");
-	}
-	
-	free(buckets);
-	
-	}
-	
+
+    free(buckets);
 	free(origin_array);
 	free(final_array);
-	
-}
 	
 }
 int compare(const void *num1, const void *num2){
@@ -218,5 +215,3 @@ int compare(const void *num1, const void *num2){
 	else if(a1==a2)return 0;
 	else return 1;
 }
-
-
