@@ -21,7 +21,7 @@
 
 
 /********************************just modify number of threads you want to use here*******************************************/
-#define threads 16
+#define threads 8
 
 
 
@@ -231,7 +231,7 @@ int main(int argc,char *argv[]){
 		}else{
 			printf("\nSORTING is NOT CORRECT\n");
 		}
-		printf("\n-----------------------------------------------------------------\n");
+		printf("\n-------------------------------------------------------------------\n");
 
     free(buckets);
 	free(origin_array);
