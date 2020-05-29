@@ -5,7 +5,7 @@
 
 /* bug fixed 2020-5-29 */
 
-/*-----------------------------------And compare complexity to Train3 Mpi case-------------------------------------*/
+/*--------------------------------------And compare complexity to Train3 Mpi case--------------------------------------------*/
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -63,12 +63,13 @@ int main(int argc,char *argv[]){
 	
 		
 		
-	//array contains all local bucket For example:4 threads there are 4*4 local buckets
+	//array contains all local bucket For example:4 threads there are 4*4 local buckets ,thus local buckets are no.0~15
 	//reset members to 0
 	bucket* buckets=(bucket*)calloc(numberofthreads*number_of_buckets,sizeof(bucket));
 	
 	
-	int global_boucket_count[number_of_buckets]; //number of elements in global buckets
+	//4 threads=>4 large buckets
+	int global_boucket_count[number_of_buckets]; //number of elements in global(large) buckets
 	int global_boucket_start[number_of_buckets]; //starting position of each bucket in final array
 	
 	//reset to 0
@@ -78,7 +79,10 @@ int main(int argc,char *argv[]){
 	size_of_local_bucket=randLarge/number_of_buckets;
 	
 	
-	//generate numbers
+	
+	/*                ---------------------------    step1      --------------------------------              */   
+	//generate numbers,not in parallel part
+	
 	for(i=0;i<N;i++)
 			origin_array[i]=rand()%randLarge;
 	
@@ -95,6 +99,9 @@ int main(int argc,char *argv[]){
 	
 	#pragma omp barrier
 	
+	
+	
+	/*                                            Times starts                                                */
 	start=omp_get_wtime();
 	
 	int my_id = omp_get_thread_num();
@@ -104,7 +111,10 @@ int main(int argc,char *argv[]){
 	
 	
 	
+	
+	/*                ---------------------------    step2      --------------------------------              */
 	//distributed date into local buckets among threads
+
 	#pragma omp for private(i,local_index) 
 	    for(i=0;i<N;i++){
 			local_index=origin_array[i]/size_of_local_bucket;
@@ -122,10 +132,14 @@ int main(int argc,char *argv[]){
 			sum_of_local_elements+=buckets[j].number_of_elements;
 			
 	global_boucket_count[my_id]=sum_of_local_elements;
-	
-	
+
 	#pragma omp barrier
 
+
+
+	/*                ---------------------------    step3      --------------------------------              */
+	//Merge small buckets to large bucket
+	
 	//take example for 4 threads
 	//first loop is done by the master thread 0
     //which initializes the starting position for both local and global buckets in final array
@@ -142,6 +156,13 @@ int main(int argc,char *argv[]){
 	#pragma omp barrier   //wait for master thread
 	
 	
+	
+	
+	
+	
+	
+	/*                ---------------------------    step4      --------------------------------              */
+	//count number of elements in global bucket
 	//second loop is done in parallel,since thread j can set up the right starting position in final array for each local bucket
 	//thread 0  buckets:4  8 12
 	//thread 1  buckets:5  9 13
@@ -157,6 +178,13 @@ int main(int argc,char *argv[]){
 	#pragma omp barrier   
 	
 	
+	
+	
+	
+	
+	
+	
+	/*                ---------------------------    step5      --------------------------------              */
 	//now we can write data into final array, since we have all positions
 	#pragma omp for private(i, final_index) 
     for (i=0; i< N ;i++){
@@ -176,6 +204,8 @@ int main(int argc,char *argv[]){
 	
 	
 	
+	
+	/*                                            Times ends                                                 */
 	end=omp_get_wtime();
 	
 	
@@ -183,7 +213,7 @@ int main(int argc,char *argv[]){
 	
 	
 	
-	
+	/*                                            Check results                                              */
 	
 	
 }
