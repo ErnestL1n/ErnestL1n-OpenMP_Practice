@@ -3,6 +3,9 @@
 //Please write a OpenMP program to sort a list with 100,000,000 numbers, each between 0 and 99999 using bucket sort technique.
 //randomly generate numbers between 0~99999
 
+//Reference:https://github.com/adricarda/parallel-Bucket-Sort
+
+
 /* bug fixed 2020-5-29 */
 
 /*--------------------------------------And compare complexity to Train3 Mpi case--------------------------------------------*/
@@ -21,7 +24,7 @@
 
 
 /********************************just modify number of threads you want to use here*******************************************/
-#define threads 8
+#define threads 16
 
 
 
@@ -231,7 +234,7 @@ int main(int argc,char *argv[]){
 		}else{
 			printf("\nSORTING is NOT CORRECT\n");
 		}
-		printf("\n-------------------------------------------------------------------\n");
+		printf("\n-----------------------------------------------------------------\n");
 
     free(buckets);
 	free(origin_array);
