@@ -3,8 +3,7 @@ OpenMP Programming Practice In C
 
 OpenMP common commands on putty ubuntu environment:(48 processors)
 
-port:163.25.101.237
-
+port:163.25.101.237.(2022)
 // XXXX file name
 
 gcc -fopenmp XXXX.c -o a && ./a
